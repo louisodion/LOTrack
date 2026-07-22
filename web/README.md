@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LOTrack Web
 
-## Getting Started
+LOTrack is a tenant-safe inventory management MVP built with Next.js and Supabase.
 
-First, run the development server:
+## Features
+
+- Email/password registration, sign-in, sign-out, and password recovery
+- Business onboarding and per-user workspace setup
+- Dashboard with inventory value, low-stock totals, and recent activity
+- Product creation, listing, editing, and deletion
+- Stock-in, stock-out, sale, return, and adjustment history
+- Atomic stock updates that reject insufficient inventory
+- Supabase row-level security for workspace isolation
+- Responsive navigation and authenticated route guards
+
+## Local setup
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Copy `.env.example` to `.env.local` and set:
+
+   ```dotenv
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+3. In the Supabase SQL editor, run `supabase/init-schema.sql`. This creates and upgrades the tables, indexes, row-level-security policies, and the transactional `record_stock_movement` function.
+
+4. In Supabase Authentication, add `http://localhost:3000/reset-password` to the allowed redirect URLs. Add the production equivalent before deployment.
+
+5. Start the app:
+
+   ```bash
+   npm run dev
+   ```
+
+## Verification
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run build
+npm run test:routes
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The route test expects the app at `http://localhost:3000`. Override it with `APP_URL` when needed.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For the live database integration test, add a disposable authenticated account to `.env.local`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```dotenv
+TEST_USER_EMAIL=test@example.com
+TEST_USER_PASSWORD=a-secure-test-password
+```
 
-## Learn More
+Then run `npm run test:integration`. The test creates a uniquely named product and verifies that a stock-in movement updates its quantity atomically.
 
-To learn more about Next.js, take a look at the following resources:
+## Inventory rules
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `stock_in`, `return`, and `adjustment` add to quantity.
+- `stock_out` and `sale` subtract from quantity.
+- A movement cannot make inventory negative.
+- Product deletion is blocked after movements exist so audit history remains intact.
+- SKUs are unique within a workspace.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy the `web` directory to a Next.js-compatible host and configure the same three public environment variables. The Paystack, Resend, staff-role, and invitation variables in `.env.example` are reserved for post-MVP modules; those integrations are not required for the inventory application.

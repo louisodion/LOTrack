@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "../../SupabaseClient";
+import { supabase } from "../../lib/supabaseClient";
 
 export default function SupabaseHealthCheckButton() {
   const [status, setStatus] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export default function SupabaseHealthCheckButton() {
       } else {
         setStatus("✅ Supabase connection is working.");
       }
-    } catch (err) {
+    } catch {
       setStatus(
         "❌ Error checking Supabase connection. Please verify your .env values and network."
       );
