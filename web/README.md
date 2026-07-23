@@ -9,6 +9,10 @@ LOTrack is a tenant-safe inventory management MVP built with Next.js and Supabas
 - Dashboard with inventory value, low-stock totals, and recent activity
 - Product creation, listing, editing, and deletion
 - Stock-in, stock-out, sale, return, and adjustment history
+- Workspace-specific category creation, editing, deletion, product filtering, and inline category creation
+- Expanded product catalog fields for cost/selling prices, supplier, unit, image URL, expiry, barcode, and overstock thresholds
+- Date-filtered product/category performance, KPI cards, rule-based insights, charts, pagination, and CSV export
+- Owner/admin financial visibility and database-enforced product/category management permissions
 - Atomic stock updates that reject insufficient inventory
 - Supabase row-level security for workspace isolation
 - Responsive navigation and authenticated route guards
@@ -29,7 +33,12 @@ LOTrack is a tenant-safe inventory management MVP built with Next.js and Supabas
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    ```
 
-3. In the Supabase SQL editor, run `supabase/init-schema.sql`. This creates and upgrades the tables, indexes, row-level-security policies, and the transactional `record_stock_movement` function.
+3. In the Supabase SQL editor, run these files in order:
+
+   - `supabase/init-schema.sql`
+   - `supabase/migrations/20260723_catalog_analytics.sql`
+
+   The migration preserves existing products, adds nullable categories and expanded catalog fields, records cost/price snapshots for future sales, and installs role-aware policies.
 
 4. In Supabase Authentication, add `http://localhost:3000/reset-password` to the allowed redirect URLs. Add the production equivalent before deployment.
 
@@ -65,6 +74,27 @@ Then run `npm run test:integration`. The test creates a uniquely named product a
 - A movement cannot make inventory negative.
 - Product deletion is blocked after movements exist so audit history remains intact.
 - SKUs are unique within a workspace.
+- Sales analytics use the cost and selling price captured when each sale is recorded. Sales created before the analytics migration have no historical price snapshots and therefore contribute units sold but not estimated historical revenue/profit.
+
+## Roles and permissions
+
+- Existing workspace creators migrate as `owner`.
+- Owners and administrators can manage categories, products, financial analytics, and exports.
+- Staff can view the catalog and record stock movements.
+- A staff profile can be granted product management by setting `permissions.manage_products` to `true`.
+- Financial values are hidden from staff in the application interface. For higher-assurance reporting deployments, expose financial analytics exclusively through a server-side reporting API rather than direct browser queries.
+
+## Analytics definitions
+
+- Inventory value: current quantity × cost price
+- Potential revenue: current quantity × selling price
+- Profit: captured sale revenue − captured cost of goods
+- Average margin: total profit ÷ total sale revenue
+- Close to expiry: expiry date within the next 30 days
+- Overstocked: current quantity at or above the optional product overstock threshold
+- Days remaining: current quantity ÷ average daily sales in the selected period
+
+All calculations handle missing sales and division by zero with explicit empty states.
 
 ## Deployment
 

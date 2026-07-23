@@ -63,7 +63,10 @@ function loadEnv() {
     name: `Integration Test Product ${Date.now()}`,
     sku: `ITP-${Math.floor(Math.random() * 100000)}`,
     quantity: 3,
-    price: 12.5,
+    price: 20,
+    cost_price: 12.5,
+    selling_price: 20,
+    unit: 'unit',
     reorder_threshold: 1,
     user_id: userId,
     workspace_id: workspaceId,
@@ -111,6 +114,25 @@ function loadEnv() {
   }
 
   console.log('Quantity updated atomically: 3 -> 8');
+
+  const { error: saleError } = await supabase.rpc('record_stock_movement', {
+    p_product_id: productData.id,
+    p_type: 'sale',
+    p_quantity: 2,
+    p_note: 'Integration test sale',
+  });
+  if (saleError) {
+    console.error('Sale movement failed:', saleError.message);
+    process.exit(1);
+  }
+
+  const { data: saleProduct, error: saleVerifyError } = await supabase
+    .from('products').select('quantity').eq('id', productData.id).single();
+  if (saleVerifyError || saleProduct?.quantity !== 6) {
+    console.error('Sale verification failed:', saleVerifyError?.message || `expected 6, received ${saleProduct?.quantity}`);
+    process.exit(1);
+  }
+  console.log('Sale updated stock atomically: 8 -> 6');
   console.log('Integration test completed successfully.');
   process.exit(0);
 })();

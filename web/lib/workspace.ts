@@ -7,6 +7,8 @@ export type WorkspaceProfile = {
   currency?: string;
   default_low_stock_threshold?: number | string;
   onboarded?: boolean;
+  role?: "owner" | "admin" | "staff";
+  permissions?: Record<string, boolean>;
 };
 
 export type WorkspaceScope = {
@@ -26,7 +28,7 @@ export async function getWorkspaceScope(): Promise<WorkspaceScope> {
   const { data: profileData } = await supabase
     .from("profiles")
     .select(
-      "workspace_id,business_name,business_type,currency,default_low_stock_threshold,onboarded"
+      "workspace_id,business_name,business_type,currency,default_low_stock_threshold,onboarded,role,permissions"
     )
     .eq("user_id", userId)
     .single();

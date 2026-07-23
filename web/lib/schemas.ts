@@ -39,18 +39,38 @@ export const onboardingSchema = z.object({
 export const productSchema = z.object({
   name: z.string().min(2, "Enter a product name"),
   sku: z.string().min(2, "Enter a product SKU"),
+  category_id: z.string().uuid("Select a category").nullable().optional(),
+  description: z.string().max(1000).optional(),
   quantity: z.preprocess(
     (value) => (typeof value === "string" ? Number(value) : value),
     z.number().min(0, "Quantity must be at least 0"),
   ),
-  price: z.preprocess(
+  cost_price: z.preprocess(
     (value) => (typeof value === "string" ? Number(value) : value),
-    z.number().min(0, "Price must be at least 0"),
+    z.number().min(0, "Cost price must be at least 0"),
+  ),
+  selling_price: z.preprocess(
+    (value) => (typeof value === "string" ? Number(value) : value),
+    z.number().min(0, "Selling price must be at least 0"),
   ),
   reorder_threshold: z.preprocess(
     (value) => (typeof value === "string" ? Number(value) : value),
     z.number().min(1, "Reorder threshold must be at least 1"),
   ),
+  supplier: z.string().max(200).optional(),
+  image_url: z.string().url("Enter a valid image URL").or(z.literal("")).optional(),
+  unit: z.string().min(1, "Enter a unit"),
+  expiry_date: z.string().optional(),
+  barcode: z.string().max(100).optional(),
+  overstock_threshold: z.preprocess(
+    (value) => (value === "" || value == null ? null : Number(value)),
+    z.number().int().positive().nullable(),
+  ),
+});
+
+export const categorySchema = z.object({
+  name: z.string().trim().min(2, "Enter a category name").max(80),
+  description: z.string().trim().max(300).optional(),
 });
 
 export const stockMovementSchema = z.object({

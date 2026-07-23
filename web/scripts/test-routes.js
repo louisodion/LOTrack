@@ -4,6 +4,7 @@ const urls = [
   '/sign-up',
   '/onboarding',
   '/dashboard',
+  '/categories',
   '/products',
   '/products/new',
   '/stock-movements',
