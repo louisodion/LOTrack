@@ -24,3 +24,5 @@ export type SaleItem = {
   quantity: number; returned_quantity: number; unit_cost: number; unit_price: number;
   discount_amount: number; line_total: number;
 };
+export type Supplier = { id:string;name:string;contact_name:string|null;email:string|null;phone:string|null;address:string|null;notes:string|null };
+export type Purchase = { id:string;purchase_number:string;supplier_id:string|null;status:string;subtotal:number;tax_amount:number;total_amount:number;amount_paid:number;payment_status:string;reference:string|null;notes:string|null;received_at:string|null;created_at:string;suppliers?:{name:string}|null };

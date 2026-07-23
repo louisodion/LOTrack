@@ -24,7 +24,7 @@ function loadEnv() {
     profiles: "role,permissions,email",
     categories: "id,workspace_id,name,description,created_by",
     products: "category_id,description,cost_price,selling_price,supplier,image_url,unit,expiry_date,barcode,overstock_threshold",
-    stock_movements: "unit_cost,unit_price,sale_id,sale_item_id",
+    stock_movements: "unit_cost,unit_price,sale_id,sale_item_id,purchase_id,purchase_item_id",
   };
   for (const [table, columns] of Object.entries(schemaChecks)) {
     const { error } = await client.from(table).select(columns).limit(0);
@@ -68,6 +68,23 @@ function loadEnv() {
     throw new Error(`return_sale_item RPC check failed: ${returnRpcError?.message || "unexpected success"}`);
   }
   console.log("return_sale_item: reachable and authentication-protected");
+
+  const { error: purchaseRpcError } = await client.rpc("receive_purchase", {
+    p_supplier_id: null, p_items: [], p_tax: 0, p_amount_paid: 0, p_reference: null, p_notes: null,
+  });
+  if (!purchaseRpcError || !/Authentication required/i.test(purchaseRpcError.message)) {
+    throw new Error(`receive_purchase RPC check failed: ${purchaseRpcError?.message || "unexpected success"}`);
+  }
+  console.log("receive_purchase: reachable and authentication-protected");
+
+  const { error: supplierPaymentRpcError } = await client.rpc("record_supplier_payment", {
+    p_purchase_id: "00000000-0000-0000-0000-000000000000", p_amount: 1,
+    p_payment_method: "cash", p_reference: null, p_notes: null,
+  });
+  if (!supplierPaymentRpcError || !/Authentication required/i.test(supplierPaymentRpcError.message)) {
+    throw new Error(`record_supplier_payment RPC check failed: ${supplierPaymentRpcError?.message || "unexpected success"}`);
+  }
+  console.log("record_supplier_payment: reachable and authentication-protected");
 })().catch((error) => {
   console.error(error.message);
   process.exit(1);

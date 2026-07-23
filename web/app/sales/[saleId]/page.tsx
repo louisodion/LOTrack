@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import AppNav from "@/app/components/AppNav";
 import AuthGuard from "@/app/components/AuthGuard";
@@ -11,8 +11,8 @@ import type { Sale, SaleItem } from "@/lib/types";
 export default function ReceiptPage(){
   const params=useParams();const id=Array.isArray(params.saleId)?params.saleId[0]:params.saleId;
   const [sale,setSale]=useState<Sale|null>(null);const [items,setItems]=useState<SaleItem[]>([]);const [message,setMessage]=useState("");const [returning,setReturning]=useState<string|null>(null);
-  const load=async()=>{const [saleResult,itemResult]=await Promise.all([supabase.from("sales").select("id,receipt_number,customer_id,subtotal,discount_amount,tax_amount,total_amount,amount_paid,payment_method,payment_status,notes,sold_by,created_at,customers(name)").eq("id",id).single(),supabase.from("sale_items").select("*").eq("sale_id",id).order("created_at")]);setSale(saleResult.data as unknown as Sale);setItems((itemResult.data??[]) as SaleItem[]);setMessage(saleResult.error?.message??itemResult.error?.message??"");};
-  useEffect(()=>{void Promise.resolve().then(load);},[id]);
+  const load=useCallback(async()=>{const [saleResult,itemResult]=await Promise.all([supabase.from("sales").select("id,receipt_number,customer_id,subtotal,discount_amount,tax_amount,total_amount,amount_paid,payment_method,payment_status,notes,sold_by,created_at,customers(name)").eq("id",id).single(),supabase.from("sale_items").select("*").eq("sale_id",id).order("created_at")]);setSale(saleResult.data as unknown as Sale);setItems((itemResult.data??[]) as SaleItem[]);setMessage(saleResult.error?.message??itemResult.error?.message??"");},[id]);
+  useEffect(()=>{void Promise.resolve().then(load);},[load]);
   const processReturn=async(item:SaleItem)=>{const available=item.quantity-item.returned_quantity;const answer=window.prompt(`Quantity to return (maximum ${available})`,"1");if(!answer)return;const quantity=Number(answer);const reason=window.prompt("Reason for return (optional)","Customer return")??"";setReturning(item.id);const {error}=await supabase.rpc("return_sale_item",{p_sale_item_id:item.id,p_quantity:quantity,p_reason:reason||null});setReturning(null);setMessage(error?.message??"Return processed and stock restored.");if(!error)await load();};
   if(!sale)return <AuthGuard><main className="grid min-h-screen place-items-center bg-slate-950 text-slate-400">{message||"Loading receipt…"}</main></AuthGuard>;
   return <AuthGuard><main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100 sm:px-12"><div className="mx-auto max-w-5xl space-y-8 print:max-w-none"><div className="print:hidden"><AppNav/></div>

@@ -11,6 +11,8 @@ const links = [
   { href: "/stock-movements", label: "Activity" },
   { href: "/sales", label: "Sales" },
   { href: "/customers", label: "Customers" },
+  { href: "/purchases", label: "Purchases" },
+  { href: "/suppliers", label: "Suppliers" },
 ];
 
 export default function AppNav() {

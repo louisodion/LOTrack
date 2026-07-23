@@ -39,6 +39,7 @@ LOTrack is a tenant-safe inventory management MVP built with Next.js and Supabas
    - `supabase/migrations/20260723_catalog_analytics.sql`
    - `supabase/migrations/20260723_team_roles.sql`
    - `supabase/migrations/20260723_sales_customers.sql`
+   - `supabase/migrations/20260723_suppliers_purchasing.sql`
 
    The migration preserves existing products, adds nullable categories and expanded catalog fields, records cost/price snapshots for future sales, and installs role-aware policies.
 
@@ -109,6 +110,15 @@ The initial release uses copyable secure links and does not require an email pro
 - Completing a sale reduces every product quantity in one database transaction. If any line has insufficient stock, nothing is written.
 - Returns restore inventory, record the refund value, and reduce dashboard revenue/profit for the selected period.
 - Sales permissions are controlled by `permissions.record_sales`; owners and administrators always have access.
+
+## Suppliers and purchasing
+
+- `/suppliers` manages the supplier directory.
+- `/purchases/new` receives multi-product supplier deliveries and records initial payment.
+- `/purchases` tracks purchase totals, supplier balances, and follow-up payments.
+- Receiving is atomic and updates product quantity plus weighted-average cost.
+- Every received line creates a linked stock-in movement for the audit trail.
+- Purchase access is controlled by `permissions.manage_purchases`; owners and administrators always have access.
 
 ## Analytics definitions
 

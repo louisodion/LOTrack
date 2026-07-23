@@ -6,13 +6,14 @@ import AppNav from "@/app/components/AppNav";
 import AuthGuard from "@/app/components/AuthGuard";
 import { calculateAnalytics, dateRange, insightsFor, toCsv, type DatePreset } from "@/lib/analytics";
 import { supabase } from "@/lib/supabaseClient";
-import type { Category, Movement, Product, UserRole } from "@/lib/types";
+import type { Category, Movement, Product, Purchase, UserRole } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [role, setRole] = useState<UserRole>("staff");
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [currency, setCurrency] = useState("NGN");
@@ -34,10 +35,12 @@ export default function DashboardPage() {
       supabase.from("products").select("id,name,sku,category_id,description,quantity,cost_price,selling_price,reorder_threshold,overstock_threshold,supplier,image_url,unit,expiry_date,barcode,categories(name)"),
       supabase.from("categories").select("id,name,description,workspace_id").order("name"),
       supabase.from("stock_movements").select("id,product_id,type,quantity,unit_cost,unit_price,created_at,sale_id,sale_item_id").order("created_at", { ascending: false }),
-    ]).then(([profile, productResult, categoryResult, movementResult]) => {
-      if (productResult.error || categoryResult.error || movementResult.error) setError(productResult.error?.message ?? categoryResult.error?.message ?? movementResult.error?.message ?? "");
+      supabase.from("purchase_orders").select("id,purchase_number,supplier_id,status,subtotal,tax_amount,total_amount,amount_paid,payment_status,reference,notes,received_at,created_at"),
+    ]).then(([profile, productResult, categoryResult, movementResult, purchaseResult]) => {
+      if (productResult.error || categoryResult.error || movementResult.error || purchaseResult.error) setError(productResult.error?.message ?? categoryResult.error?.message ?? movementResult.error?.message ?? purchaseResult.error?.message ?? "");
       setBusiness(profile.data?.business_name ?? "LOTrack"); setCurrency(profile.data?.currency ?? "NGN"); setRole((profile.data?.role ?? "staff") as UserRole); setPermissions((profile.data?.permissions ?? {}) as Record<string, boolean>);
       setProducts((productResult.data ?? []) as unknown as Product[]); setCategories((categoryResult.data ?? []) as Category[]); setMovements((movementResult.data ?? []) as Movement[]);
+      setPurchases((purchaseResult.data ?? []) as Purchase[]);
       setLoading(false);
     });
   }, []);
@@ -45,6 +48,12 @@ export default function DashboardPage() {
   const range = useMemo(() => dateRange(preset, customStart, customEnd), [preset, customStart, customEnd]);
   const analytics = useMemo(() => calculateAnalytics(products, categories, movements, range.start, range.end), [products, categories, movements, range]);
   const financial = role === "owner" || role === "admin" || Boolean(permissions.view_financials);
+  const rangedPurchases = purchases.filter(p => {
+    const date = new Date(p.received_at ?? p.created_at);
+    return date >= range.start && date <= range.end && p.status === "received";
+  });
+  const purchaseTotal = rangedPurchases.reduce((sum,p)=>sum+Number(p.total_amount),0);
+  const supplierBalance = purchases.reduce((sum,p)=>sum+Math.max(0,Number(p.total_amount)-Number(p.amount_paid)),0);
   const filtered = useMemo(() => analytics.rows.filter(r =>
     (!search || `${r.product.name} ${r.product.sku}`.toLowerCase().includes(search.toLowerCase())) &&
     (!category || r.product.category_id === category) && (!status || r.status === status)
@@ -61,7 +70,7 @@ export default function DashboardPage() {
     ["Total products", products.length], ["Total stock", analytics.totalStock], ["Low stock", analytics.lowStock],
     ["Out of stock", analytics.outOfStock], ["Overstocked", analytics.overstocked], ["Close to expiry", analytics.closeToExpiry],
     ["Categories", categories.length],
-    ...(financial ? [["Inventory value", money(analytics.inventoryValue)], ["Potential revenue", money(analytics.potentialRevenue)], ["Potential profit", money(analytics.potentialProfit)], ["Sales value", money(analytics.revenue)], ["Total profit", money(analytics.profit)], ["Average margin", `${analytics.averageMargin.toFixed(1)}%`]] : []),
+    ...(financial ? [["Inventory value", money(analytics.inventoryValue)], ["Potential revenue", money(analytics.potentialRevenue)], ["Potential profit", money(analytics.potentialProfit)], ["Sales value", money(analytics.revenue)], ["Purchases", money(purchaseTotal)], ["Supplier balance", money(supplierBalance)], ["Total profit", money(analytics.profit)], ["Average margin", `${analytics.averageMargin.toFixed(1)}%`]] : []),
   ];
   const maxRevenue = Math.max(1, ...analytics.rows.map(r => r.revenue));
   const trend = useMemo(() => {
@@ -105,6 +114,7 @@ export default function DashboardPage() {
             <article className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7"><h2 className="text-xl font-semibold">Business insights</h2><div className="mt-6 space-y-3">{insightsFor(analytics).length ? insightsFor(analytics).map(text => <p key={text} className="rounded-2xl bg-slate-950/80 p-4 text-sm text-slate-300">{text}</p>) : <p className="text-slate-400">Record more activity to generate recommendations.</p>}</div></article>
             <article className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7"><h2 className="text-xl font-semibold">Sales and profit trend</h2><p className="mt-1 text-sm text-slate-400">Daily values for up to 14 recent active days.</p><MiniBars data={trend.map(([label,value]) => ({ label: label.slice(5), primary: value.revenue, secondary: value.profit }))}/></article>
             <article className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7"><h2 className="text-xl font-semibold">Category revenue and stock value</h2><p className="mt-1 text-sm text-slate-400">Compare demand with capital currently held in stock.</p><MiniBars data={analytics.categoryRows.map(row => ({ label: row.category.name, primary: row.revenue, secondary: row.stockValue })).slice(0, 10)}/></article>
+            <article className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7 lg:col-span-2"><h2 className="text-xl font-semibold">Purchases versus sales</h2><p className="mt-1 text-sm text-slate-400">Compare supplier purchasing with net sales revenue in the selected period.</p><MiniBars data={[{label:"Selected period",primary:purchaseTotal,secondary:analytics.revenue}]}/></article>
           </section>}
         <section className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-2xl font-semibold">Product Performance</h2><p className="text-sm text-slate-400">Search, filter, sort, and export calculated results.</p></div>{(role === "owner" || role === "admin" || permissions.export_reports) && <button onClick={exportCsv} className="rounded-full bg-emerald-500 px-5 py-3 font-semibold text-slate-950">Export CSV</button>}</div>
           <div className="mt-6 grid gap-3 md:grid-cols-4"><input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search product…" className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"/><select value={category} onChange={e => { setCategory(e.target.value); setPage(1); }} className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"><option value="">All categories</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"><option value="">All statuses</option>{["Top Performing","Performing Well","Average","Slow Moving","No Sales","Low Stock","Out of Stock","Overstocked"].map(s=><option key={s}>{s}</option>)}</select><select value={sort} onChange={e=>setSort(e.target.value as typeof sort)} className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"><option value="revenue">Sort by revenue</option><option value="profit">Sort by profit</option><option value="quantitySold">Sort by units sold</option><option value="name">Sort by name</option></select></div>

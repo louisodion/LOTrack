@@ -17,6 +17,7 @@ type Invitation = {
 };
 const permissionOptions = [
   ["record_sales", "Record sales", "Create sales, take payments, and process returns"],
+  ["manage_purchases", "Manage purchases", "Manage suppliers, receive stock, and record supplier payments"],
   ["manage_products", "Manage products", "Create, edit, and delete products"],
   ["view_financials", "View financials", "See costs, profit, margins, and exports"],
   ["export_reports", "Export reports", "Download business performance data"],
