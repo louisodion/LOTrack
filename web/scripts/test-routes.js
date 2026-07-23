@@ -12,6 +12,7 @@ const urls = [
   '/suppliers',
   '/purchases',
   '/purchases/new',
+  '/alerts',
   '/invite?token=00000000-0000-0000-0000-000000000000',
   '/products',
   '/products/new',

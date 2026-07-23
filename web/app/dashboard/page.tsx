@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState(0);
   const [role, setRole] = useState<UserRole>("staff");
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [currency, setCurrency] = useState("NGN");
@@ -36,11 +37,13 @@ export default function DashboardPage() {
       supabase.from("categories").select("id,name,description,workspace_id").order("name"),
       supabase.from("stock_movements").select("id,product_id,type,quantity,unit_cost,unit_price,created_at,sale_id,sale_item_id").order("created_at", { ascending: false }),
       supabase.from("purchase_orders").select("id,purchase_number,supplier_id,status,subtotal,tax_amount,total_amount,amount_paid,payment_status,reference,notes,received_at,created_at"),
-    ]).then(([profile, productResult, categoryResult, movementResult, purchaseResult]) => {
+      supabase.from("alerts").select("id",{count:"exact",head:true}).eq("is_active",true),
+    ]).then(([profile, productResult, categoryResult, movementResult, purchaseResult, alertResult]) => {
       if (productResult.error || categoryResult.error || movementResult.error || purchaseResult.error) setError(productResult.error?.message ?? categoryResult.error?.message ?? movementResult.error?.message ?? purchaseResult.error?.message ?? "");
       setBusiness(profile.data?.business_name ?? "LOTrack"); setCurrency(profile.data?.currency ?? "NGN"); setRole((profile.data?.role ?? "staff") as UserRole); setPermissions((profile.data?.permissions ?? {}) as Record<string, boolean>);
       setProducts((productResult.data ?? []) as unknown as Product[]); setCategories((categoryResult.data ?? []) as Category[]); setMovements((movementResult.data ?? []) as Movement[]);
       setPurchases((purchaseResult.data ?? []) as Purchase[]);
+      setActiveAlerts(alertResult.count ?? 0);
       setLoading(false);
     });
   }, []);
@@ -69,7 +72,7 @@ export default function DashboardPage() {
   const kpis = [
     ["Total products", products.length], ["Total stock", analytics.totalStock], ["Low stock", analytics.lowStock],
     ["Out of stock", analytics.outOfStock], ["Overstocked", analytics.overstocked], ["Close to expiry", analytics.closeToExpiry],
-    ["Categories", categories.length],
+    ["Categories", categories.length], ["Active alerts", activeAlerts],
     ...(financial ? [["Inventory value", money(analytics.inventoryValue)], ["Potential revenue", money(analytics.potentialRevenue)], ["Potential profit", money(analytics.potentialProfit)], ["Sales value", money(analytics.revenue)], ["Purchases", money(purchaseTotal)], ["Supplier balance", money(supplierBalance)], ["Total profit", money(analytics.profit)], ["Average margin", `${analytics.averageMargin.toFixed(1)}%`]] : []),
   ];
   const maxRevenue = Math.max(1, ...analytics.rows.map(r => r.revenue));

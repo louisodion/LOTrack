@@ -13,6 +13,7 @@ const links = [
   { href: "/customers", label: "Customers" },
   { href: "/purchases", label: "Purchases" },
   { href: "/suppliers", label: "Suppliers" },
+  { href: "/alerts", label: "Alerts" },
 ];
 
 export default function AppNav() {

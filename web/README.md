@@ -40,6 +40,7 @@ LOTrack is a tenant-safe inventory management MVP built with Next.js and Supabas
    - `supabase/migrations/20260723_team_roles.sql`
    - `supabase/migrations/20260723_sales_customers.sql`
    - `supabase/migrations/20260723_suppliers_purchasing.sql`
+   - `supabase/migrations/20260723_alerts_notifications.sql`
 
    The migration preserves existing products, adds nullable categories and expanded catalog fields, records cost/price snapshots for future sales, and installs role-aware policies.
 
@@ -119,6 +120,14 @@ The initial release uses copyable secure links and does not require an email pro
 - Receiving is atomic and updates product quantity plus weighted-average cost.
 - Every received line creates a linked stock-in movement for the audit trail.
 - Purchase access is controlled by `permissions.manage_purchases`; owners and administrators always have access.
+
+## Alerts and notifications
+
+- `/alerts` generates an in-app action center from real workspace data.
+- Rules cover out-of-stock, low-stock, expiry, projected stockout, fast-selling products, overdue customer balances, and outstanding supplier balances.
+- Owners and administrators can configure warning windows and the fast-selling multiplier.
+- Read and dismissed state is stored per user, so one staff member does not clear another member's notification.
+- Refreshing resolves alerts whose underlying condition no longer exists and reactivates recurring conditions.
 
 ## Analytics definitions
 

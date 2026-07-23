@@ -85,6 +85,12 @@ function loadEnv() {
     throw new Error(`record_supplier_payment RPC check failed: ${supplierPaymentRpcError?.message || "unexpected success"}`);
   }
   console.log("record_supplier_payment: reachable and authentication-protected");
+
+  const { error: alertRpcError } = await client.rpc("refresh_workspace_alerts");
+  if (!alertRpcError || !/Authentication required/i.test(alertRpcError.message)) {
+    throw new Error(`refresh_workspace_alerts RPC check failed: ${alertRpcError?.message || "unexpected success"}`);
+  }
+  console.log("refresh_workspace_alerts: reachable and authentication-protected");
 })().catch((error) => {
   console.error(error.message);
   process.exit(1);
