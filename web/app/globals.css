@@ -24,3 +24,29 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media print {
+  body {
+    background: white !important;
+    color: #0f172a !important;
+  }
+
+  nav,
+  footer {
+    display: none !important;
+  }
+
+  main,
+  section,
+  article,
+  header {
+    background: white !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  section,
+  article {
+    break-inside: avoid;
+  }
+}

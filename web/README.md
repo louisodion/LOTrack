@@ -129,6 +129,16 @@ The initial release uses copyable secure links and does not require an email pro
 - Read and dismissed state is stored per user, so one staff member does not clear another member's notification.
 - Refreshing resolves alerts whose underlying condition no longer exists and reactivates recurring conditions.
 
+## Reports and exports
+
+- `/reports` combines sales, returns, inventory, customer balances, purchases, and supplier balances.
+- Presets and custom dates update every summary, ranking, and table together.
+- Net sales and product rankings account for recorded returns.
+- Owners, administrators, and staff with `view_financials` can see cost, gross profit, margin, and inventory cost value.
+- CSV export is available to owners, administrators, and staff with `export_reports`.
+- **Print / PDF** produces a clean browser print layout suitable for saving or sharing as PDF.
+- Report currency follows the workspace currency configured during onboarding.
+
 ## Analytics definitions
 
 - Inventory value: current quantity × cost price
