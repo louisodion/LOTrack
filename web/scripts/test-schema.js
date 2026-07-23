@@ -21,7 +21,7 @@ function loadEnv() {
   const client = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   const schemaChecks = {
-    profiles: "role,permissions",
+    profiles: "role,permissions,email",
     categories: "id,workspace_id,name,description,created_by",
     products: "category_id,description,cost_price,selling_price,supplier,image_url,unit,expiry_date,barcode,overstock_threshold",
     stock_movements: "unit_cost,unit_price",

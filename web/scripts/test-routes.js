@@ -5,6 +5,8 @@ const urls = [
   '/onboarding',
   '/dashboard',
   '/categories',
+  '/team',
+  '/invite?token=00000000-0000-0000-0000-000000000000',
   '/products',
   '/products/new',
   '/stock-movements',

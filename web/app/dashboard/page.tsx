@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [role, setRole] = useState<UserRole>("staff");
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [currency, setCurrency] = useState("NGN");
   const [business, setBusiness] = useState("LOTrack");
   const [preset, setPreset] = useState<DatePreset>("30d");
@@ -35,7 +36,7 @@ export default function DashboardPage() {
       supabase.from("stock_movements").select("id,product_id,type,quantity,unit_cost,unit_price,created_at").order("created_at", { ascending: false }),
     ]).then(([profile, productResult, categoryResult, movementResult]) => {
       if (productResult.error || categoryResult.error || movementResult.error) setError(productResult.error?.message ?? categoryResult.error?.message ?? movementResult.error?.message ?? "");
-      setBusiness(profile.data?.business_name ?? "LOTrack"); setCurrency(profile.data?.currency ?? "NGN"); setRole((profile.data?.role ?? "staff") as UserRole);
+      setBusiness(profile.data?.business_name ?? "LOTrack"); setCurrency(profile.data?.currency ?? "NGN"); setRole((profile.data?.role ?? "staff") as UserRole); setPermissions((profile.data?.permissions ?? {}) as Record<string, boolean>);
       setProducts((productResult.data ?? []) as unknown as Product[]); setCategories((categoryResult.data ?? []) as Category[]); setMovements((movementResult.data ?? []) as Movement[]);
       setLoading(false);
     });
@@ -43,7 +44,7 @@ export default function DashboardPage() {
 
   const range = useMemo(() => dateRange(preset, customStart, customEnd), [preset, customStart, customEnd]);
   const analytics = useMemo(() => calculateAnalytics(products, categories, movements, range.start, range.end), [products, categories, movements, range]);
-  const financial = role === "owner" || role === "admin";
+  const financial = role === "owner" || role === "admin" || Boolean(permissions.view_financials);
   const filtered = useMemo(() => analytics.rows.filter(r =>
     (!search || `${r.product.name} ${r.product.sku}`.toLowerCase().includes(search.toLowerCase())) &&
     (!category || r.product.category_id === category) && (!status || r.status === status)
@@ -52,6 +53,7 @@ export default function DashboardPage() {
   const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
   const money = (value: number) => new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
   const exportCsv = () => {
+    if (!(role === "owner" || role === "admin" || permissions.export_reports)) return;
     const blob = new Blob([toCsv(filtered)], { type: "text/csv;charset=utf-8" });
     const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `lotrack-performance-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(link.href);
   };
@@ -100,7 +102,7 @@ export default function DashboardPage() {
             <article className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7"><h2 className="text-xl font-semibold">Sales and profit trend</h2><p className="mt-1 text-sm text-slate-400">Daily values for up to 14 recent active days.</p><MiniBars data={trend.map(([label,value]) => ({ label: label.slice(5), primary: value.revenue, secondary: value.profit }))}/></article>
             <article className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7"><h2 className="text-xl font-semibold">Category revenue and stock value</h2><p className="mt-1 text-sm text-slate-400">Compare demand with capital currently held in stock.</p><MiniBars data={analytics.categoryRows.map(row => ({ label: row.category.name, primary: row.revenue, secondary: row.stockValue })).slice(0, 10)}/></article>
           </section>}
-        <section className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-2xl font-semibold">Product Performance</h2><p className="text-sm text-slate-400">Search, filter, sort, and export calculated results.</p></div>{financial && <button onClick={exportCsv} className="rounded-full bg-emerald-500 px-5 py-3 font-semibold text-slate-950">Export CSV</button>}</div>
+        <section className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-7"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div><h2 className="text-2xl font-semibold">Product Performance</h2><p className="text-sm text-slate-400">Search, filter, sort, and export calculated results.</p></div>{(role === "owner" || role === "admin" || permissions.export_reports) && <button onClick={exportCsv} className="rounded-full bg-emerald-500 px-5 py-3 font-semibold text-slate-950">Export CSV</button>}</div>
           <div className="mt-6 grid gap-3 md:grid-cols-4"><input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search product…" className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"/><select value={category} onChange={e => { setCategory(e.target.value); setPage(1); }} className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"><option value="">All categories</option>{categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }} className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"><option value="">All statuses</option>{["Top Performing","Performing Well","Average","Slow Moving","No Sales","Low Stock","Out of Stock","Overstocked"].map(s=><option key={s}>{s}</option>)}</select><select value={sort} onChange={e=>setSort(e.target.value as typeof sort)} className="rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"><option value="revenue">Sort by revenue</option><option value="profit">Sort by profit</option><option value="quantitySold">Sort by units sold</option><option value="name">Sort by name</option></select></div>
           <div className="mt-6 overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="text-slate-400"><tr>{["Product","Category","Sold",...(financial?["Revenue","Profit","Margin"]:[]),"Stock","Reorder","Days left","Status","Action"].map(h=><th key={h} className="px-4 py-3">{h}</th>)}</tr></thead><tbody className="divide-y divide-slate-800">{visible.map(r=><tr key={r.product.id}><td className="px-4 py-4"><p className="font-semibold">{r.product.name}</p><p className="text-xs text-slate-500">{r.product.sku}</p></td><td className="px-4">{r.product.categories?.name??"Uncategorized"}</td><td className="px-4">{r.quantitySold}</td>{financial&&<><td className="px-4">{money(r.revenue)}</td><td className="px-4">{money(r.profit)}</td><td className="px-4">{r.margin.toFixed(1)}%</td></>}<td className="px-4">{r.product.quantity}</td><td className="px-4">{r.product.reorder_threshold}</td><td className="px-4">{r.daysRemaining?.toFixed(1)??"—"}</td><td className="px-4">{r.status}</td><td className="px-4 text-emerald-300">{r.action}</td></tr>)}</tbody></table></div>
           <div className="mt-5 flex items-center justify-between"><p className="text-sm text-slate-400">Page {page} of {pages}</p><div className="flex gap-2"><button disabled={page===1} onClick={()=>setPage(p=>p-1)} className="rounded-full bg-slate-800 px-4 py-2 disabled:opacity-40">Previous</button><button disabled={page===pages} onClick={()=>setPage(p=>p+1)} className="rounded-full bg-slate-800 px-4 py-2 disabled:opacity-40">Next</button></div></div>

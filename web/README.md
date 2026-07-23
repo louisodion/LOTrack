@@ -37,6 +37,7 @@ LOTrack is a tenant-safe inventory management MVP built with Next.js and Supabas
 
    - `supabase/init-schema.sql`
    - `supabase/migrations/20260723_catalog_analytics.sql`
+   - `supabase/migrations/20260723_team_roles.sql`
 
    The migration preserves existing products, adds nullable categories and expanded catalog fields, records cost/price snapshots for future sales, and installs role-aware policies.
 
@@ -82,7 +83,21 @@ Then run `npm run test:integration`. The test creates a uniquely named product a
 - Owners and administrators can manage categories, products, financial analytics, and exports.
 - Staff can view the catalog and record stock movements.
 - A staff profile can be granted product management by setting `permissions.manage_products` to `true`.
+- Owners and administrators can create seven-day invitation links from `/team`.
+- Invitees must sign in with the exact invited email before accepting the link.
+- Owners can promote administrators. Administrators can manage staff but cannot promote or remove other administrators.
+- Removing a member immediately separates their profile from the business workspace and sends them through onboarding for a new workspace.
 - Financial values are hidden from staff in the application interface. For higher-assurance reporting deployments, expose financial analytics exclusively through a server-side reporting API rather than direct browser queries.
+
+### Team invitation flow
+
+1. Open **Team** from the authenticated navigation.
+2. Enter the member email, choose a role, and select staff permissions.
+3. Create the invitation and copy its link.
+4. Send the link through your preferred secure messaging channel.
+5. The member signs in or creates an account using the invited email, reopens the link if email verification was required, and accepts.
+
+The initial release uses copyable secure links and does not require an email provider. Resend delivery can be added later without changing the invitation database model.
 
 ## Analytics definitions
 

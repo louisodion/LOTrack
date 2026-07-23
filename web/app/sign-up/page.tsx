@@ -45,7 +45,8 @@ export default function SignUpPage() {
     }
 
     if (data?.session) {
-      router.push("/onboarding");
+      const next = new URLSearchParams(window.location.search).get("next");
+      router.push(next?.startsWith("/") ? next : "/onboarding");
       return;
     }
 
