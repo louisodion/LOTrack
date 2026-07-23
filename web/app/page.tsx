@@ -1,5 +1,5 @@
 import Link from "next/link";
-import SupabaseHealthCheckButton from "./components/SupabaseHealthCheckButton";
+import SiteFooter from "./components/SiteFooter";
 import { Activity, Box, Database, ShieldCheck } from "lucide-react";
 
 const features = [
@@ -155,11 +155,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-6 pb-24 sm:px-12 lg:px-16">
-        <div className="mx-auto max-w-6xl">
-          <SupabaseHealthCheckButton />
-        </div>
-      </section>
+      <SiteFooter />
     </main>
   );
 }
