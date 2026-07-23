@@ -33,7 +33,7 @@ export default function DashboardPage() {
       supabase.from("profiles").select("business_name,currency,role,permissions").single(),
       supabase.from("products").select("id,name,sku,category_id,description,quantity,cost_price,selling_price,reorder_threshold,overstock_threshold,supplier,image_url,unit,expiry_date,barcode,categories(name)"),
       supabase.from("categories").select("id,name,description,workspace_id").order("name"),
-      supabase.from("stock_movements").select("id,product_id,type,quantity,unit_cost,unit_price,created_at").order("created_at", { ascending: false }),
+      supabase.from("stock_movements").select("id,product_id,type,quantity,unit_cost,unit_price,created_at,sale_id,sale_item_id").order("created_at", { ascending: false }),
     ]).then(([profile, productResult, categoryResult, movementResult]) => {
       if (productResult.error || categoryResult.error || movementResult.error) setError(productResult.error?.message ?? categoryResult.error?.message ?? movementResult.error?.message ?? "");
       setBusiness(profile.data?.business_name ?? "LOTrack"); setCurrency(profile.data?.currency ?? "NGN"); setRole((profile.data?.role ?? "staff") as UserRole); setPermissions((profile.data?.permissions ?? {}) as Record<string, boolean>);
@@ -72,6 +72,10 @@ export default function DashboardPage() {
       if (movement.type === "sale") {
         point.revenue += movement.quantity * Number(movement.unit_price ?? 0);
         point.profit += movement.quantity * (Number(movement.unit_price ?? 0) - Number(movement.unit_cost ?? 0));
+      }
+      if (movement.type === "return" && movement.sale_id) {
+        point.revenue -= movement.quantity * Number(movement.unit_price ?? 0);
+        point.profit -= movement.quantity * (Number(movement.unit_price ?? 0) - Number(movement.unit_cost ?? 0));
       }
       point.stock += movement.type === "stock_in" || movement.type === "return" || movement.type === "adjustment" ? movement.quantity : -movement.quantity;
       points.set(day, point);

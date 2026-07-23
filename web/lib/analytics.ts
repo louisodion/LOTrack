@@ -26,13 +26,14 @@ export function calculateAnalytics(products: Product[], categories: Category[], 
     const time = new Date(m.created_at);
     return time >= start && time <= end;
   });
-  const sales = ranged.filter((m) => m.type === "sale");
+  const sales = ranged.filter((m) => m.type === "sale" || (m.type === "return" && m.sale_id));
   const byProduct = new Map<string, { quantitySold: number; revenue: number; cost: number }>();
   for (const sale of sales) {
+    const direction = sale.type === "return" ? -1 : 1;
     const value = byProduct.get(sale.product_id) ?? { quantitySold: 0, revenue: 0, cost: 0 };
-    value.quantitySold += Number(sale.quantity);
-    value.revenue += Number(sale.quantity) * Number(sale.unit_price ?? 0);
-    value.cost += Number(sale.quantity) * Number(sale.unit_cost ?? 0);
+    value.quantitySold += direction * Number(sale.quantity);
+    value.revenue += direction * Number(sale.quantity) * Number(sale.unit_price ?? 0);
+    value.cost += direction * Number(sale.quantity) * Number(sale.unit_cost ?? 0);
     byProduct.set(sale.product_id, value);
   }
   const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));

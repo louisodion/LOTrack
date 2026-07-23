@@ -9,6 +9,8 @@ const links = [
   { href: "/categories", label: "Categories" },
   { href: "/team", label: "Team" },
   { href: "/stock-movements", label: "Activity" },
+  { href: "/sales", label: "Sales" },
+  { href: "/customers", label: "Customers" },
 ];
 
 export default function AppNav() {

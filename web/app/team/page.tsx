@@ -16,6 +16,7 @@ type Invitation = {
   permissions: Record<string, boolean>; expires_at: string; accepted_at: string | null;
 };
 const permissionOptions = [
+  ["record_sales", "Record sales", "Create sales, take payments, and process returns"],
   ["manage_products", "Manage products", "Create, edit, and delete products"],
   ["view_financials", "View financials", "See costs, profit, margins, and exports"],
   ["export_reports", "Export reports", "Download business performance data"],
@@ -27,7 +28,7 @@ export default function TeamPage() {
   const [actorRole, setActorRole] = useState<UserRole>("staff");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin"|"staff">("staff");
-  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+  const [permissions, setPermissions] = useState<Record<string, boolean>>({ record_sales: true });
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -55,7 +56,7 @@ export default function TeamPage() {
       workspace_id: scope.workspaceId, created_by: scope.userId,
     });
     if (error) return setMessage(error.message);
-    setEmail(""); setRole("staff"); setPermissions({}); setMessage("Invitation created. Copy its secure link below.");
+    setEmail(""); setRole("staff"); setPermissions({ record_sales: true }); setMessage("Invitation created. Copy its secure link below.");
     await load();
   };
   const updateMember = async (member: Member, nextRole: "admin"|"staff", nextPermissions: Record<string, boolean>) => {
